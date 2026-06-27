@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VTT 3D-Imersivo - Floresta CHB</title>
+    <title>VTT 3D-Imersivo - Livro do Mestre Semideuses 2e</title>
     <style>
         body {
             margin: 0;
@@ -14,41 +14,38 @@
             user-select: none;
         }
 
-        /* CONTAINER DO MAPA DO TABULEIRO */
         #vtt-container {
             width: 100vw;
             height: 100vh;
             position: relative;
-            /* MAPA DE FLORESTA DO ACAMPAMENTO MEIO-SANGUE (Substitua o link por qualquer battlemap se preferir) */
-            background-image: url('https://i.pinimg.com/originals/3a/0d/fc/3a0dfc0fcf95dbfa293cf75f3a0994cc.jpg');
-            background-size: 1920px 1080px; /* Tamanho fixo simulando tabuleiros reais */
+            background-image: url('https://i.pinimg.com/originals/3a/0d/fc/3a0dfc0fcf95dbfa293cf75f3a0994cc.jpg'); 
+            background-size: 1920px 1080px;
             background-repeat: no-repeat;
             background-position: top left;
             background-color: #1a231c;
-            overflow: auto; /* Permite scroll se o mapa for maior que a tela */
+            overflow: auto;
+            transition: background-image 0.5s ease-in-out;
         }
 
-        /* GRID SEMITRANSPARENTE ALINHADO POR CIMA DO BATTLEMAP */
         #vtt-grid-overlay {
             position: absolute;
             top: 0;
             left: 0;
-            width: 3000px; /* Área estendida para o mapa */
+            width: 3000px;
             height: 3000px;
             background-image: 
                 linear-gradient(to right, rgba(255, 255, 255, 0.12) 1px, transparent 1px),
                 linear-gradient(to bottom, rgba(255, 255, 255, 0.12) 1px, transparent 1px);
             background-size: 50px 50px;
-            pointer-events: none; /* Deixa os cliques passarem para os tokens */
+            pointer-events: none;
             z-index: 2;
         }
 
-        /* BARRA LATERAL ESTILO ROLL20 COM DESIGN COMBINANDO */
         #roll20-sidebar {
             position: absolute;
             top: 0;
             right: 0;
-            width: 320px;
+            width: 340px;
             height: 100vh;
             background-color: #11161e;
             box-shadow: -8px 0 25px rgba(0,0,0,0.7);
@@ -60,13 +57,13 @@
         }
 
         #roll20-sidebar.hidden {
-            transform: translateX(320px);
+            transform: translateX(340px);
         }
 
         #toggle-sidebar {
             position: absolute;
             top: 15px;
-            right: 335px;
+            right: 355px;
             background-color: #7b1fa2;
             color: white;
             border: none;
@@ -76,18 +73,15 @@
             font-weight: bold;
             box-shadow: 0 4px 12px rgba(0,0,0,0.4);
             z-index: 101;
-            transition: background 0.2s;
         }
 
-        #toggle-sidebar:hover { background-color: #9c27b0; }
-
         .sidebar-panel {
-            padding: 15px;
+            padding: 10px 15px;
             border-bottom: 1px solid #1f2731;
         }
 
         .panel-title {
-            margin: 0 0 10px 0;
+            margin: 0 0 8px 0;
             font-size: 0.8rem;
             text-transform: uppercase;
             letter-spacing: 1px;
@@ -95,27 +89,33 @@
             font-weight: bold;
         }
 
+        .action-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 6px;
+            margin-bottom: 4px;
+        }
+
         .dice-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 6px;
-            margin-bottom: 10px;
+            gap: 4px;
         }
 
         button.vtt-btn {
             background-color: #242f3d;
             color: white;
             border: 1px solid #324154;
-            padding: 8px 5px;
+            padding: 6px 4px;
             border-radius: 4px;
             cursor: pointer;
             font-weight: bold;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             transition: all 0.2s;
         }
 
         button.vtt-btn:hover { background-color: #2e3d50; border-color: #435770; }
-        button.action-btn { background-color: #d35400; border-color: #b34200; width: 100%; margin-bottom: 6px;}
+        button.action-btn { background-color: #d35400; border-color: #b34200; width: 100%; margin-bottom: 4px;}
         button.action-btn:hover { background-color: #e67e22; }
         button.forge-btn { background-color: #2e7d32; border-color: #1e5222; width: 100%;}
         button.forge-btn:hover { background-color: #388e3c; }
@@ -135,7 +135,7 @@
             display: flex;
             flex-direction: column;
             gap: 8px;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
         }
 
         .chat-message {
@@ -146,10 +146,10 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
 
-        .chat-message.roll {
-            border-left-color: #ba68c8;
-            background-color: #1c1524;
-        }
+        .chat-message.roll { border-left-color: #ba68c8; background-color: #1c1524; }
+        .chat-message.monster-spawn { border-left-color: #e74c3c; background-color: #241616; }
+        .chat-message.atlas-move { border-left-color: #2980b9; background-color: #162433; }
+        .chat-message.dm-tool { border-left-color: #f1c40f; background-color: #242215; }
 
         .roll-total {
             font-size: 1.4rem;
@@ -158,53 +158,28 @@
             margin-top: 4px;
         }
 
-        /* MINIATURAS E ELEMENTOS EM PROFUNDIDADE 3D (TOKENS) */
         .token {
-            width: 46px;
-            height: 46px;
-            position: absolute;
-            border-radius: 50%;
-            /* Borda dourada com gradiente simulando medalhão ou miniatura metálica física */
-            border: 3px solid #ffca28;
-            /* Sombras 3D projetadas na floresta para dar efeito de altura e profundidade */
-            box-shadow: 0 6px 12px rgba(0,0,0,0.7), inset 0 2px 4px rgba(255,255,255,0.3);
-            cursor: move;
-            z-index: 10;
-            background-size: cover;
-            background-position: center;
-            background-color: #455a64;
-            transform: scale(1);
-            transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.2s;
+            width: 46px; height: 46px; position: absolute; border-radius: 50%;
+            border: 3px solid #ffca28; box-shadow: 0 6px 12px rgba(0,0,0,0.7), inset 0 2px 4px rgba(255,255,255,0.3);
+            cursor: move; z-index: 10; background-size: cover; background-position: center; background-color: #455a64;
+            transform: scale(1); transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.2s;
         }
 
-        /* Efeito visual 3D de "Levantar a miniatura da mesa" ao arrastar */
         .token.dragging {
-            z-index: 50;
-            border-color: #00e676;
-            transform: scale(1.15) translateY(-4px); /* Aumenta levemente e move para cima */
-            box-shadow: 0 15px 25px rgba(0,0,0,0.8); /* Aumenta a distância da sombra no chão */
+            z-index: 50; border-color: #00e676 !important; transform: scale(1.15) translateY(-4px); box-shadow: 0 15px 25px rgba(0,0,0,0.8);
         }
 
         .token-label {
-            position: absolute;
-            bottom: -20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: rgba(10, 15, 20, 0.85);
-            color: #ffffff;
-            padding: 1px 6px;
-            border-radius: 3px;
-            font-size: 10px;
-            font-weight: bold;
-            white-space: nowrap;
-            pointer-events: none;
-            border: 1px solid rgba(255,255,255,0.15);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+            position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%);
+            background-color: rgba(10, 15, 20, 0.85); color: #ffffff; padding: 1px 6px;
+            border-radius: 3px; font-size: 10px; font-weight: bold; white-space: nowrap; pointer-events: none;
+            border: 1px solid rgba(255,255,255,0.15); box-shadow: 0 2px 4px rgba(0,0,0,0.4);
         }
 
         .vtt-input {
-            width: 100%; padding: 8px; margin-bottom: 8px; border-radius: 4px;
+            width: 100%; padding: 6px; margin-bottom: 4px; border-radius: 4px;
             border: 1px solid #232d38; background-color: #171f28; color: white; box-sizing: border-box;
+            font-size: 0.85rem;
         }
     </style>
 </head>
@@ -212,18 +187,57 @@
 
     <button id="toggle-sidebar">➔ OCULTAR</button>
 
-    <!-- ÁREA DO TABULEIRO COM MAPA DE FLORESTA -->
     <div id="vtt-container">
-        <!-- Linhas do Grid renderizadas sobre a imagem de fundo -->
         <div id="vtt-grid-overlay"></div>
     </div>
 
-    <!-- INTERFACE LATERAL -->
     <div id="roll20-sidebar">
+        <!-- ESCUDO DO MESTRE: FERRAMENTAS DO CAPÍTULO 2, 13 E 14 -->
+        <div class="sidebar-panel" style="background-color: #1a1625;">
+            <div class="panel-title" style="color: #f1c40f;">Painel do Mestre (Escudo)</div>
+            <div class="action-grid">
+                <button class="vtt-btn" onclick="gerarClima()">🌦️ Rolar Clima</button>
+                <button class="vtt-btn" onclick="gerarComplicacao()">⚠️ Complicação</button>
+                <button class="vtt-btn" onclick="gerarNPC()">👤 Improvisar NPC</button>
+                <button class="vtt-btn" onclick="testarNevoa()">🌫️ CD da Névoa</button>
+            </div>
+            <select id="nevoa-select" class="vtt-input">
+                <option value="10">Simples (CD 10) - Ocultar Arma</option>
+                <option value="14">Moderada (CD 14) - Monstro vira Animal</option>
+                <option value="18">Complexa (CD 18) - Ocultar Batalha Coletiva</option>
+                <option value="22">Extrema (CD 22) - Deus vira Mortal</option>
+            </select>
+        </div>
+
         <div class="sidebar-panel">
-            <div class="panel-title">Aba de Elementos</div>
-            <button class="vtt-btn action-btn" onclick="spawnGenericToken('Herói', '#1565c0')">+ Adicionar Herói</button>
-            <button class="vtt-btn action-btn" style="background-color: #6a1b9a; border-color: #4a148c;" onclick="spawnGenericToken('Minotauro', '#6a1b9a')">+ Adicionar Monstro</button>
+            <div class="panel-title">Navegador de Cenários (Atlas)</div>
+            <select id="atlas-select" class="vtt-input">
+                <option value="chb_floresta">Long Island - Floresta do Acampamento</option>
+                <option value="empire_state">Nova York - 600° Andar do Empire State</option>
+                <option value="central_park">Nova York - Central Park</option>
+                <option value="lax_submundo">Los Angeles - Terminal LAX (Submundo)</option>
+                <option value="mar_monstros">O Mar de Monstros</option>
+                <option value="tartaro">O Abismo do Tártaro</option>
+                <option value="labirinto">O Labirinto de Dédalo</option>
+            </select>
+            <button class="vtt-btn action-btn" style="background-color: #2980b9; border-color: #1f618d;" id="btn-change-map">🗺️ Mudar de Cenário</button>
+        </div>
+
+        <div class="sidebar-panel">
+            <div class="panel-title">Bestiário Semideuses 2e</div>
+            <select id="monster-select" class="vtt-input">
+                <option value="minotauro">Minotauro (ND 5)</option>
+                <option value="hidra">Hidra (ND 8)</option>
+                <option value="medusa">Medusa (ND 7)</option>
+                <option value="ciclope">Ciclope (ND 6)</option>
+                <option value="drakon">Drakon (ND 12)</option>
+                <option value="quimera">Quimera (ND 9)</option>
+                <option value="escorpião">Escorpião Gigante (ND 4)</option>
+                <option value="basilisco">Basilisco (ND 5)</option>
+                <option value="leao">Leão de Nemeia (ND 6)</option>
+                <option value="manticora">Manticora (ND 7)</option>
+            </select>
+            <button class="vtt-btn action-btn" style="background-color: #c0392b; border-color: #962d22;" id="btn-spawn-monster">👹 Invocar Criatura</button>
         </div>
 
         <div class="sidebar-panel">
@@ -247,38 +261,88 @@
         </div>
 
         <div id="chat-container">
-            <div class="sidebar-panel" style="background-color: #11161e; padding: 10px 15px;">
+            <div class="sidebar-panel" style="background-color: #11161e; padding: 5px 15px;">
                 <div class="panel-title" style="margin:0;">Chat Log da Mesa</div>
             </div>
             <div id="chat-log">
-                <div class="chat-message"><b>Sistema:</b> VTT Floresta CHB ativo. Arraste as miniaturas para ajustar suas táticas no grid.</div>
+                <div class="chat-message"><b>Sistema:</b> VTT e Escudo do Mestre ativos. Pronto para a sessão.</div>
             </div>
         </div>
     </div>
 
     <script>
+        // Dados oficiais extraídos do Livro do Mestre e Atlas do Mundo
+        const climasOficiais = [
+            { c: "Céu Limpo", e: "Sem modificadores mecânicos ambientais ativos." },
+            { c: "Nublado", e: "Sem modificadores. O Mestre pode interpretar como um prenúncio divino[cite: 4]." },
+            { c: "Chuva Leve", e: "Desvantagem em testes de Percepção baseados na visão[cite: 4]." },
+            { c: "Tempestade de Zeus", e: "Desvantagem em ataques à distância; o terreno aberto vira Terreno Difícil[cite: 4]." },
+            { c: "Névoa Densa", e: "Penumbra em toda a área externa; Desvantagem em testes de Percepção[cite: 4]." },
+            { c: "Calor Extremo de Deméter", e: "Exige Teste de CON (CD 10) por hora de atividade intensa ou causa 1 nível de Exaustão[cite: 4]." },
+            { c: "Frio Extremo de Bóreas", e: "Exige Teste de CON (CD 10) por hora sem proteção adequada ou causa 1 nível de Exaustão[cite: 4]." },
+            { c: "Clima de Origem Divina", e: "Manifestação direta da ira ou humor de um deus. Modificadores escalam conforme a divindade[cite: 4]." }
+        ];
+
+        const complicacoesOficiais = [
+            "A informação inicial estava errada - a situação real é totalmente diferente[cite: 4].",
+            "Um aliado foi comprometido ou chantageado - não é mais totalmente confiável[cite: 4].",
+            "O prazo foi encurtado drasticamente pelo avanço do Relógio do Vilão[cite: 4].",
+            "Um recurso ou item essencial do grupo foi danificado ou perdido no caminho[cite: 4].",
+            "Uma terceira facção inesperada apareceu com uma agenda própria conflitante[cite: 4].",
+            "O objetivo real da missão não era nada do que foi dito aos heróis no Acampamento[cite: 4]."
+        ];
+
+        const nomesNPC = ["Alexandros", "Demetrios", "Daphne", "Elektra", "Thalia", "Zoe", "Nico", "Marcus", "Kalliope", "Lysandra"][cite: 4];
+        const reacoesNPC = [
+            { d: "Hostil", b: "Ataca ou ameaça o grupo de semideuses imediatamente[cite: 4]." },
+            { d: "Desconfiado", b: "Recusa cooperação direta; exige uma prova de intenção ou lealdade[cite: 4]." },
+            { d: "Cauteloso", b: "Coopera minimamente enquanto monitora as ações do grupo[cite: 4]." },
+            { d: "Neutro / Transacional", b: "Ajuda apenas se houver uma troca ou benefício claro para sua facção[cite: 4]." },
+            { d: "Amigável", b: "Coopera voluntariamente e pode oferecer mais informações do que o solicitado[cite: 4]." }
+        ];
+
+        const atlasMundo = {
+            chb_floresta: { nome: "A Floresta do Acampamento", url: "https://i.pinimg.com/originals/3a/0d/fc/3a0dfc0fcf95dbfa293cf75f3a0994cc.jpg", desc: "400 acres de floresta densa[cite: 4]. Treinamento vivo com criaturas autorizadas por Quirão[cite: 4]." },
+            empire_state: { nome: "O 600° Andar (Monte Olimpo)", url: "https://i.pinimg.com/originals/5c/d6/de/5cd6de0b0dfcf73c660bb30f7be52a16.jpg", desc: "A entrada para o Olimpo[cite: 4]. 1h aqui equivale a 1h30 no mundo mortal[cite: 4]." },
+            central_park: { nome: "Central Park - Nova York", url: "https://i.pinimg.com/originals/b3/ee/b2/b3eeb29f55f2b84cf13f88b56088d8b6.jpg", desc: "Alta energia natural[cite: 4]. Ponto de caça para Sátiros e Dríades territoriais[cite: 4]." },
+            lax_submundo: { nome: "LAX Terminal (Submundo)", url: "https://i.pinimg.com/originals/3a/27/a3/3a27a3c74c935ee5ec4660eb0072cb0e.jpg", desc: "Entrada do reino de Hades[cite: 4]. O contato com o Estige causa 4d10 de dano Necrótico por rodada[cite: 4]!" },
+            mar_monstros: { nome: "O Mar de Monstros", url: "https://i.pinimg.com/originals/4e/d8/b1/4ed8b18ec494a5da671f65c192bd3780.jpg", desc: "Localizado no Triângulo das Bermudas[cite: 4]. As regras normais de navegação falham[cite: 4]." },
+            tartaro: { nome: "O Abismo do Tártaro", url: "https://i.pinimg.com/originals/0f/bb/fc/0fbbfe7ef99b0c79efb9777174db63fc.jpg", desc: "Ambiente hostil. Semideuses sofrem 1d6 de dano Psíquico por hora sem proteção divina[cite: 4]." },
+            labirinto: { nome: "O Labirinto de Dédalo", url: "https://i.pinimg.com/originals/72/7a/df/727adf6987df1c9bc40fffa8174dfb29.jpg", desc: "Dimensão consciente em mutação[cite: 4]. Teste de Investigação (CD 15) a cada hora para não se perder[cite: 4]." }
+        };
+
+        const bestiario = {
+            minotauro: { nome: "Minotauro", nd: 5, pv: 114, ca: 14, cor: "#d35400", info: "Ataque Duplo (+9): Chifre (2d10+6) e Soco (2d6+6)[cite: 4]. CD 17 Investida Devastadora[cite: 4]." },
+            hidra: { nome: "Hidra", nd: 8, pv: 172, ca: 15, cor: "#27ae60", info: "Começa com 5 cabeças[cite: 4]. Cada corte gera duas se sofrer dano Cortante[cite: 4]. Mordida (+8): 2d6+5." },
+            medusa: { nome: "Medusa", nd: 7, pv: 127, ca: 15, cor: "#16a085", info: "Olhar Petrificante CD 15 (CON)[cite: 4]. Arco (+5): 1d8+2. Mordida Serpente (+6): 2d6+3 + 2d6 veneno[cite: 4]." },
+            ciclope: { nome: "Ciclope", nd: 6, pv: 138, ca: 12, cor: "#2980b9", info: "Ataque Duplo (+9 Porrete: 3d8+6 ou Rocha: 3d10+6)[cite: 4]. Ocupa espaço de 3x3m, agarra alvos automaticamente[cite: 4]." },
+            drakon: { nome: "Drakon", nd: 12, pv: 230, ca: 18, cor: "#8e44ad", info: "Ataque Triplo (+13)[cite: 4]. Veneno corrosivo CD 18 impede cura[cite: 4]. Olhar Hipnótico CD 16[cite: 4]." },
+            quimera: { nome: "Quimera", nd: 9, pv: 168, ca: 16, cor: "#d35400", info: "Ataque Triplo (+9 Leão: 2d8+5, Cabra: 2d6+5, Serpente: 1d8+5 + 3d6 veneno)[cite: 4]. Sopro 8d6[cite: 4]." },
+            escorpião: { nome: "Escorpião Gigante", nd: 4, pv: 94, ca: 15, cor: "#7f8c8d", info: "Ataque Duplo (+6)[cite: 4]. Garra agarra alvo (escape CD 14)[cite: 4]. Ferrão: 1d10+4 + 3d6 veneno (Paralisia)[cite: 4]." },
+            basilisco: { nome: "Basilisco", nd: 5, pv: 104, ca: 15, cor: "#27ae60", info: "Olhar Petrificante CD 14[cite: 4]. Mordida (+5): 2d6+3 + 2d6 veneno[cite: 4]. Cuspe Ácido 4d8 (Cegueira)[cite: 4]." },
+            leao: { nome: "Leão de Nemeia", nd: 6, pv: 120, ca: 17, cor: "#f39c12", info: "Couro Impenetrável (Imune a armas não-mágicas/não-divinas)[cite: 4]. Ataque Duplo Garra (+9): 2d8+6[cite: 4]." },
+            manticora: { nome: "Manticora", nd: 7, pv: 144, ca: 15, cor: "#e67e22", info: "Ataque Triplo (+7 Mordida/Garra e +6 Espinho: 1d8+3 + 2d6 veneno)[cite: 4]. Inteligência Predatória (fala)[cite: 4]." }
+        };
+
         const container = document.getElementById('vtt-container');
         const sidebar = document.getElementById('roll20-sidebar');
         const toggleBtn = document.getElementById('toggle-sidebar');
         const chatLog = document.getElementById('chat-log');
+        const monsterSelect = document.getElementById('monster-select');
+        const atlasSelect = document.getElementById('atlas-select');
+        const nevoaSelect = document.getElementById('nevoa-select');
         
         const gridSize = 50;
 
-        // Alternador do Painel lateral
         toggleBtn.addEventListener('click', () => {
             const isHidden = sidebar.classList.toggle('hidden');
-            if (isHidden) {
-                toggleBtn.innerText = "◀ EXIBIR";
-                toggleBtn.style.right = "15px";
-            } else {
-                toggleBtn.innerText = "➔ OCULTAR";
-                toggleBtn.style.right = "335px";
-            }
+            toggleBtn.innerText = isHidden ? "◀ EXIBIR" : "➔ OCULTAR";
+            toggleBtn.style.right = isHidden ? "15px" : "355px";
         });
 
-        function enviarAoChat(conteudo, eDado = false) {
+        function enviarAoChat(conteudo, classe = "chat-message") {
             const msg = document.createElement('div');
-            msg.className = eDado ? "chat-message roll" : "chat-message";
+            msg.className = classe;
             msg.innerHTML = conteudo;
             chatLog.appendChild(msg);
             chatLog.scrollTop = chatLog.scrollHeight;
@@ -286,38 +350,47 @@
 
         function rolarDado(lados) {
             const resultado = Math.floor(Math.random() * lados) + 1;
-            const estruturaMensagem = `
-                <b>Rolagem de Dados</b><br>
-                <span style="color: #b388ff;">Resultado para d${lados}:</span>
-                <div class="roll-total">${resultado}</div>
-            `;
-            enviarAoChat(estruturaMensagem, true);
+            enviarAoChat(`<b>Rolagem de Dados</b><br><span style="color: #b388ff;">Resultado para d${lados}:</span><div class="roll-total">${resultado}</div>`, "chat-message roll");
         }
 
-        // SISTEMA DE ARRASTE COM TRANSIÇÃO E PROFUNDIDADE 3D
+        // --- SISTEMA DE TABELAS DO LIVRO DO MESTRE ---
+        function gerarClima() {
+            const clima = climasOficiais[Math.floor(Math.random() * climasOficiais.length)];
+            enviarAoChat(`<b>🌦️ Tabela de Clima (Cap. 14)</b><br><span style="color: #f1c40f;">Condição: ${clima.c}</span><br><small>${clima.e}</small>`, "chat-message dm-tool");
+        }
+
+        function gerarComplicacao() {
+            const comp = complicacoesOficiais[Math.floor(Math.random() * complicacoesOficiais.length)];
+            enviarAoChat(`<b>⚠️ Complicação de Missão (Cap. 14)</b><br><span style="color: #e74c3c;">Reviravolta:</span> <small>${comp}</small>`, "chat-message dm-tool");
+        }
+
+        function gerarNPC() {
+            const nome = nomesNPC[Math.floor(Math.random() * nomesNPC.length)];
+            const reacao = reacoesNPC[Math.floor(Math.random() * reacoesNPC.length)];
+            enviarAoChat(`<b>👤 NPC Improvisado (Cap. 14)</b><br><b>Nome:</b> ${nome}<br><span style="color: #2ecc71;">Postura Inicial: ${reacao.d}</span><br><small>${reacao.b}</small>`, "chat-message dm-tool");
+        }
+
+        function testarNevoa() {
+            const cd = nevoaSelect.value;
+            enviarAoChat(`<b>Filter: Manipulação da Névoa (Cap. 2)</b><br>Para enganar a percepção dos mortais nesta cena, o semideus exige um teste ativo de <b>CAR ou INT</b> contra uma <b>Classe de Dificuldade (CD) ${cd}</b>[cite: 4].`, "chat-message dm-tool");
+        }
+
         function mapearMovimentacaoToken(token) {
             let isDragging = false;
-            let startX, startY;
-            let tokenLeft, tokenTop;
+            let startX, startY, tokenLeft, tokenTop;
 
             token.addEventListener('mousedown', (e) => {
                 isDragging = true;
-                token.classList.add('dragging'); // Ativa a física visual 3D (escala + sombra estendida)
-                
-                startX = e.clientX;
-                startY = e.clientY;
-                tokenLeft = token.offsetLeft;
-                tokenTop = token.offsetTop;
-                
+                token.classList.add('dragging');
+                startX = e.clientX; startY = e.clientY;
+                tokenLeft = token.offsetLeft; tokenTop = token.offsetTop;
                 e.preventDefault();
             });
 
             document.addEventListener('mousemove', (e) => {
                 if (!isDragging) return;
-
                 const deltaX = e.clientX - startX;
                 const deltaY = e.clientY - startY;
-
                 token.style.left = (tokenLeft + deltaX) + 'px';
                 token.style.top = (tokenTop + deltaY) + 'px';
             });
@@ -325,53 +398,60 @@
             document.addEventListener('mouseup', () => {
                 if (!isDragging) return;
                 isDragging = false;
-                token.classList.remove('dragging'); // Retorna a peça ao chão do mapa
+                token.classList.remove('dragging');
 
-                // Snapping inteligente no quadrado de 50px do Battlemap
                 let xAlinhado = Math.round(token.offsetLeft / gridSize) * gridSize;
                 let yAlinhado = Math.round(token.offsetTop / gridSize) * gridSize;
-
-                // Margem interna de centralização (Borda de 3px + compensação)
                 token.style.left = (xAlinhado + 1) + 'px';
                 token.style.top = (yAlinhado + 1) + 'px';
             });
         }
 
-        function spawnGenericToken(nome, cor) {
+        document.getElementById('btn-change-map').addEventListener('click', () => {
+            const mapKey = atlasSelect.value;
+            const mapa = atlasMundo[mapKey];
+            if (!mapa) return;
+            container.style.backgroundImage = `url('${mapa.url}')`;
+            enviarAoChat(`<b>📍 Viagem: ${mapa.nome}</b><br><span style="color: #3498db; font-size: 0.85rem;">${mapa.desc}</span>`, "chat-message atlas-move");
+        });
+
+        document.getElementById('btn-spawn-monster').addEventListener('click', () => {
+            const key = monsterSelect.value;
+            const m = bestiario[key];
+            if (!m) return;
+
             const token = document.createElement('div');
             token.className = 'token';
-            token.style.backgroundColor = cor;
-            token.style.left = "101px";
-            token.style.top = "101px";
+            token.style.backgroundColor = m.cor;
+            token.style.borderColor = "#e74c3c";
+            token.style.left = "151px";
+            token.style.top = "151px";
+
+            if (m.nd >= 7) { token.style.width = "54px"; token.style.height = "54px"; }
 
             const label = document.createElement('div');
             label.className = 'token-label';
-            label.innerText = nome;
+            label.innerText = `${m.nome} (ND ${m.nd})`;
             token.appendChild(label);
 
             container.appendChild(token);
             mapearMovimentacaoToken(token);
-            enviarAoChat(`<b>Mestre:</b> Posicionou a miniatura de <i>${nome}</i> na floresta.`);
-        }
+            enviarAoChat(`<b>Mestre:</b> Invocou ${m.nome} (ND ${m.nd})[cite: 4].<br><b>PV:</b> ${m.pv} | <b>CA:</b> ${m.ca}<br><small>${m.info}</small>`, "chat-message monster-spawn");
+        });
 
         document.getElementById('btn-forge').addEventListener('click', () => {
-            const nameInput = document.getElementById('player-name').value.trim();
-            const nome = nameInput || "Semideus";
+            const nome = document.getElementById('player-name').value.trim() || "Semideus";
             const fileInput = document.getElementById('player-image');
             const file = fileInput.files[0];
 
-            if(!file) {
-                alert("Selecione uma imagem de rosto para o semideus!");
-                return;
-            }
+            if(!file) { alert("Selecione uma imagem de rosto para o semideus!"); return; }
 
             const reader = new FileReader();
             reader.onload = function(e) {
                 const token = document.createElement('div');
                 token.className = 'token';
                 token.style.backgroundImage = `url('${e.target.result}')`;
-                token.style.left = "201px";
-                token.style.top = "201px";
+                token.style.left = "201px"; token.style.top = "201px";
 
                 const label = document.createElement('div');
                 label.className = 'token-label';
@@ -380,11 +460,8 @@
 
                 container.appendChild(token);
                 mapearMovimentacaoToken(token);
-
-                enviarAoChat(`<b>Sistema:</b> O semideus <b>${nome}</b> avançou pelas árvores.`);
-                
-                document.getElementById('player-name').value = "";
-                fileInput.value = "";
+                enviarAoChat(`<b>Sistema:</b> O semideus <b>${nome}</b> entrou na cena.`);
+                document.getElementById('player-name').value = ""; fileInput.value = "";
             };
             reader.readAsDataURL(file);
         });

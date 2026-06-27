@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VTT 3D-Imersivo - Floresta CHB</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #0b0f12;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #ecf0f1;
+            user-select: none;
+        }
+
+        /* CONTAINER DO MAPA DO TABULEIRO */
+        #vtt-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            /* MAPA DE FLORESTA DO ACAMPAMENTO MEIO-SANGUE (Substitua o link por qualquer battlemap se preferir) */
+            background-image: url('https://i.imgur.com/KdfO7bA.jpeg'); 
+            background-size: 1920px 1080px; /* Tamanho fixo simulando tabuleiros reais */
+            background-repeat: no-repeat;
+            background-position: top left;
+            background-color: #1a231c;
+            overflow: auto; /* Permite scroll se o mapa for maior que a tela */
+        }
+
+        /* GRID SEMITRANSPARENTE ALINHADO POR CIMA DO BATTLEMAP */
+        #vtt-grid-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 3000px; /* Área estendida para o mapa */
+            height: 3000px;
+            background-image: 
+                linear-gradient(to right, rgba(255, 255, 255, 0.12) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 255, 255, 0.12) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none; /* Deixa os cliques passarem para os tokens */
+            z-index: 2;
+        }
+
+        /* BARRA LATERAL ESTILO ROLL20 COM DESIGN COMBINANDO */
+        #roll20-sidebar {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 320px;
+            height: 100vh;
+            background-color: #11161e;
+            box-shadow: -8px 0 25px rgba(0,0,0,0.7);
+            display: flex;
+            flex-direction: column;
+            z-index: 100;
+            transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+            border-left: 1px solid #242d38;
+        }
+
+        #roll20-sidebar.hidden {
+            transform: translateX(320px);
+        }
+
+        #toggle-sidebar {
+            position: absolute;
+            top: 15px;
+            right: 335px;
+            background-color: #7b1fa2;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            z-index: 101;
+            transition: background 0.2s;
+        }
+
+        #toggle-sidebar:hover { background-color: #9c27b0; }
+
+        .sidebar-panel {
+            padding: 15px;
+            border-bottom: 1px solid #1f2731;
+        }
+
+        .panel-title {
+            margin: 0 0 10px 0;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #b388ff;
+            font-weight: bold;
+        }
+
+        .dice-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+
+        button.vtt-btn {
+            background-color: #242f3d;
+            color: white;
+            border: 1px solid #324154;
+            padding: 8px 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        button.vtt-btn:hover { background-color: #2e3d50; border-color: #435770; }
+        button.action-btn { background-color: #d35400; border-color: #b34200; width: 100%; margin-bottom: 6px;}
+        button.action-btn:hover { background-color: #e67e22; }
+        button.forge-btn { background-color: #2e7d32; border-color: #1e5222; width: 100%;}
+        button.forge-btn:hover { background-color: #388e3c; }
+
+        #chat-container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: #0b0e14;
+            overflow: hidden;
+        }
+
+        #chat-log {
+            flex-grow: 1;
+            padding: 12px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            font-size: 0.9rem;
+        }
+
+        .chat-message {
+            background-color: #151a22;
+            padding: 10px;
+            border-radius: 4px;
+            border-left: 3px solid #455a64;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .chat-message.roll {
+            border-left-color: #ba68c8;
+            background-color: #1c1524;
+        }
+
+        .roll-total {
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: #ffd54f;
+            margin-top: 4px;
+        }
+
+        /* MINIATURAS E ELEMENTOS EM PROFUNDIDADE 3D (TOKENS) */
+        .token {
+            width: 46px;
+            height: 46px;
+            position: absolute;
+            border-radius: 50%;
+            /* Borda dourada com gradiente simulando medalhão ou miniatura metálica física */
+            border: 3px solid #ffca28;
+            /* Sombras 3D projetadas na floresta para dar efeito de altura e profundidade */
+            box-shadow: 0 6px 12px rgba(0,0,0,0.7), inset 0 2px 4px rgba(255,255,255,0.3);
+            cursor: move;
+            z-index: 10;
+            background-size: cover;
+            background-position: center;
+            background-color: #455a64;
+            transform: scale(1);
+            transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.2s;
+        }
+
+        /* Efeito visual 3D de "Levantar a miniatura da mesa" ao arrastar */
+        .token.dragging {
+            z-index: 50;
+            border-color: #00e676;
+            transform: scale(1.15) translateY(-4px); /* Aumenta levemente e move para cima */
+            box-shadow: 0 15px 25px rgba(0,0,0,0.8); /* Aumenta a distância da sombra no chão */
+        }
+
+        .token-label {
+            position: absolute;
+            bottom: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(10, 15, 20, 0.85);
+            color: #ffffff;
+            padding: 1px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: bold;
+            white-space: nowrap;
+            pointer-events: none;
+            border: 1px solid rgba(255,255,255,0.15);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+        }
+
+        .vtt-input {
+            width: 100%; padding: 8px; margin-bottom: 8px; border-radius: 4px;
+            border: 1px solid #232d38; background-color: #171f28; color: white; box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+
+    <button id="toggle-sidebar">➔ OCULTAR</button>
+
+    <!-- ÁREA DO TABULEIRO COM MAPA DE FLORESTA -->
+    <div id="vtt-container">
+        <!-- Linhas do Grid renderizadas sobre a imagem de fundo -->
+        <div id="vtt-grid-overlay"></div>
+    </div>
+
+    <!-- INTERFACE LATERAL -->
+    <div id="roll20-sidebar">
+        <div class="sidebar-panel">
+            <div class="panel-title">Aba de Elementos</div>
+            <button class="vtt-btn action-btn" onclick="spawnGenericToken('Herói', '#1565c0')">+ Adicionar Herói</button>
+            <button class="vtt-btn action-btn" style="background-color: #6a1b9a; border-color: #4a148c;" onclick="spawnGenericToken('Minotauro', '#6a1b9a')">+ Adicionar Monstro</button>
+        </div>
+
+        <div class="sidebar-panel">
+            <div class="panel-title">Pin Forge (Jogadores)</div>
+            <input type="text" id="player-name" class="vtt-input" placeholder="Nome do Semideus...">
+            <input type="file" id="player-image" class="vtt-input" accept="image/*">
+            <button class="vtt-btn forge-btn" id="btn-forge">Forjar & Inserir Token</button>
+        </div>
+
+        <div class="sidebar-panel">
+            <div class="panel-title">Rolador de Dados</div>
+            <div class="dice-grid">
+                <button class="vtt-btn" onclick="rolarDado(4)">D4</button>
+                <button class="vtt-btn" onclick="rolarDado(6)">D6</button>
+                <button class="vtt-btn" onclick="rolarDado(8)">D8</button>
+                <button class="vtt-btn" onclick="rolarDado(10)">D10</button>
+                <button class="vtt-btn" onclick="rolarDado(12)">D12</button>
+                <button class="vtt-btn" onclick="rolarDado(20)">D20</button>
+                <button class="vtt-btn" onclick="rolarDado(100)">D100</button>
+            </div>
+        </div>
+
+        <div id="chat-container">
+            <div class="sidebar-panel" style="background-color: #11161e; padding: 10px 15px;">
+                <div class="panel-title" style="margin:0;">Chat Log da Mesa</div>
+            </div>
+            <div id="chat-log">
+                <div class="chat-message"><b>Sistema:</b> VTT Floresta CHB ativo. Arraste as miniaturas para ajustar suas táticas no grid.</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const container = document.getElementById('vtt-container');
+        const sidebar = document.getElementById('roll20-sidebar');
+        const toggleBtn = document.getElementById('toggle-sidebar');
+        const chatLog = document.getElementById('chat-log');
+        
+        const gridSize = 50;
+
+        // Alternador do Painel lateral
+        toggleBtn.addEventListener('click', () => {
+            const isHidden = sidebar.classList.toggle('hidden');
+            if (isHidden) {
+                toggleBtn.innerText = "◀ EXIBIR";
+                toggleBtn.style.right = "15px";
+            } else {
+                toggleBtn.innerText = "➔ OCULTAR";
+                toggleBtn.style.right = "335px";
+            }
+        });
+
+        function enviarAoChat(conteudo, eDado = false) {
+            const msg = document.createElement('div');
+            msg.className = eDado ? "chat-message roll" : "chat-message";
+            msg.innerHTML = conteudo;
+            chatLog.appendChild(msg);
+            chatLog.scrollTop = chatLog.scrollHeight;
+        }
+
+        function rolarDado(lados) {
+            const resultado = Math.floor(Math.random() * lados) + 1;
+            const estruturaMensagem = `
+                <b>Rolagem de Dados</b><br>
+                <span style="color: #b388ff;">Resultado para d${lados}:</span>
+                <div class="roll-total">${resultado}</div>
+            `;
+            enviarAoChat(estruturaMensagem, true);
+        }
+
+        // SISTEMA DE ARRASTE COM TRANSIÇÃO E PROFUNDIDADE 3D
+        function mapearMovimentacaoToken(token) {
+            let isDragging = false;
+            let startX, startY;
+            let tokenLeft, tokenTop;
+
+            token.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                token.classList.add('dragging'); // Ativa a física visual 3D (escala + sombra estendida)
+                
+                startX = e.clientX;
+                startY = e.clientY;
+                tokenLeft = token.offsetLeft;
+                tokenTop = token.offsetTop;
+                
+                e.preventDefault();
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+
+                const deltaX = e.clientX - startX;
+                const deltaY = e.clientY - startY;
+
+                token.style.left = (tokenLeft + deltaX) + 'px';
+                token.style.top = (tokenTop + deltaY) + 'px';
+            });
+
+            document.addEventListener('mouseup', () => {
+                if (!isDragging) return;
+                isDragging = false;
+                token.classList.remove('dragging'); // Retorna a peça ao chão do mapa
+
+                // Snapping inteligente no quadrado de 50px do Battlemap
+                let xAlinhado = Math.round(token.offsetLeft / gridSize) * gridSize;
+                let yAlinhado = Math.round(token.offsetTop / gridSize) * gridSize;
+
+                // Margem interna de centralização (Borda de 3px + compensação)
+                token.style.left = (xAlinhado + 1) + 'px';
+                token.style.top = (yAlinhado + 1) + 'px';
+            });
+        }
+
+        function spawnGenericToken(nome, cor) {
+            const token = document.createElement('div');
+            token.className = 'token';
+            token.style.backgroundColor = cor;
+            token.style.left = "101px";
+            token.style.top = "101px";
+
+            const label = document.createElement('div');
+            label.className = 'token-label';
+            label.innerText = nome;
+            token.appendChild(label);
+
+            container.appendChild(token);
+            mapearMovimentacaoToken(token);
+            enviarAoChat(`<b>Mestre:</b> Posicionou a miniatura de <i>${nome}</i> na floresta.`);
+        }
+
+        document.getElementById('btn-forge').addEventListener('click', () => {
+            const nameInput = document.getElementById('player-name').value.trim();
+            const nome = nameInput || "Semideus";
+            const fileInput = document.getElementById('player-image');
+            const file = fileInput.files[0];
+
+            if(!file) {
+                alert("Selecione uma imagem de rosto para o semideus!");
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const token = document.createElement('div');
+                token.className = 'token';
+                token.style.backgroundImage = `url('${e.target.result}')`;
+                token.style.left = "201px";
+                token.style.top = "201px";
+
+                const label = document.createElement('div');
+                label.className = 'token-label';
+                label.innerText = nome;
+                token.appendChild(label);
+
+                container.appendChild(token);
+                mapearMovimentacaoToken(token);
+
+                enviarAoChat(`<b>Sistema:</b> O semideus <b>${nome}</b> avançou pelas árvores.`);
+                
+                document.getElementById('player-name').value = "";
+                fileInput.value = "";
+            };
+            reader.readAsDataURL(file);
+        });
+    </script>
+</body>
+</html>

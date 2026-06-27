@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VTT 3D-Imersivo - Livro do Mestre Semideuses 2e</title>
+    <title>VTT 3D-Imersivo - Universo Semideuses 2e</title>
     <style>
         body {
             margin: 0;
@@ -14,6 +14,7 @@
             user-select: none;
         }
 
+        /* CONTAINER DO MAPA DO TABULEIRO */
         #vtt-container {
             width: 100vw;
             height: 100vh;
@@ -27,6 +28,7 @@
             transition: background-image 0.5s ease-in-out;
         }
 
+        /* GRID SEMITRANSPARENTE */
         #vtt-grid-overlay {
             position: absolute;
             top: 0;
@@ -41,6 +43,7 @@
             z-index: 2;
         }
 
+        /* BARRA LATERAL ESTILO ROLL20 */
         #roll20-sidebar {
             position: absolute;
             top: 0;
@@ -193,22 +196,25 @@
 
     <div id="roll20-sidebar">
         <!-- ESCUDO DO MESTRE: FERRAMENTAS DO CAPÍTULO 2, 13 E 14 -->
-        <div class="sidebar-panel" style="background-color: #1a1625;">
-            <div class="panel-title" style="color: #f1c40f;">Painel do Mestre (Escudo)</div>
+        <div class="sidebar-panel">
+            <div class="panel-title">Painel do Mestre (Escudo)</div>
             <div class="action-grid">
-                <button class="vtt-btn" onclick="gerarClima()">🌦️ Rolar Clima</button>
-                <button class="vtt-btn" onclick="gerarComplicacao()">⚠️ Complicação</button>
-                <button class="vtt-btn" onclick="gerarNPC()">👤 Improvisar NPC</button>
-                <button class="vtt-btn" onclick="testarNevoa()">🌫️ CD da Névoa</button>
+                <button class="vtt-btn" id="btn-clima">⛈️ Rolar Clima</button>
+                <button class="vtt-btn" id="btn-complicacao">⚠️ Complicação</button>
             </div>
-            <select id="nevoa-select" class="vtt-input">
+            <div class="action-grid" style="margin-top: 6px;">
+                <button class="vtt-btn" id="btn-npc">👤 Improvisar NPC</button>
+                <button class="vtt-btn" id="btn-nevoa">🌫️ CD da Névoa</button>
+            </div>
+            <select id="nevoa-select" class="vtt-input" style="margin-top: 6px;">
                 <option value="10">Simples (CD 10) - Ocultar Arma</option>
-                <option value="14">Moderada (CD 14) - Monstro vira Animal</option>
-                <option value="18">Complexa (CD 18) - Ocultar Batalha Coletiva</option>
-                <option value="22">Extrema (CD 22) - Deus vira Mortal</option>
+                <option value="14">Moderada (CD 14) - Criatura como Animal</option>
+                <option value="18">Complexa (CD 18) - Cobertura de Batalha</option>
+                <option value="22">Extrema (CD 22) - Deus como Mortal</option>
             </select>
         </div>
 
+        <!-- NAVEGADOR DO ATLAS -->
         <div class="sidebar-panel">
             <div class="panel-title">Navegador de Cenários (Atlas)</div>
             <select id="atlas-select" class="vtt-input">
@@ -216,13 +222,14 @@
                 <option value="empire_state">Nova York - 600° Andar do Empire State</option>
                 <option value="central_park">Nova York - Central Park</option>
                 <option value="lax_submundo">Los Angeles - Terminal LAX (Submundo)</option>
-                <option value="mar_monstros">O Mar de Monstros</option>
+                <option value="mar_monstros">O Mar de Monstros (Triângulo das Bermudas)</option>
                 <option value="tartaro">O Abismo do Tártaro</option>
                 <option value="labirinto">O Labirinto de Dédalo</option>
             </select>
             <button class="vtt-btn action-btn" style="background-color: #2980b9; border-color: #1f618d;" id="btn-change-map">🗺️ Mudar de Cenário</button>
         </div>
 
+        <!-- BESTIÁRIO OFICIAL DO RPG -->
         <div class="sidebar-panel">
             <div class="panel-title">Bestiário Semideuses 2e</div>
             <select id="monster-select" class="vtt-input">
@@ -240,6 +247,7 @@
             <button class="vtt-btn action-btn" style="background-color: #c0392b; border-color: #962d22;" id="btn-spawn-monster">👹 Invocar Criatura</button>
         </div>
 
+        <!-- PIN FORGE (CUSTOM TOKENS) -->
         <div class="sidebar-panel">
             <div class="panel-title">Pin Forge (Jogadores)</div>
             <input type="text" id="player-name" class="vtt-input" placeholder="Nome do Semideus...">
@@ -247,6 +255,7 @@
             <button class="vtt-btn forge-btn" id="btn-forge">Forjar & Inserir Token</button>
         </div>
 
+        <!-- ROLADOR DE DADOS -->
         <div class="sidebar-panel">
             <div class="panel-title">Rolador de Dados</div>
             <div class="dice-grid">
@@ -260,27 +269,27 @@
             </div>
         </div>
 
+        <!-- CHAT LOG -->
         <div id="chat-container">
             <div class="sidebar-panel" style="background-color: #11161e; padding: 5px 15px;">
                 <div class="panel-title" style="margin:0;">Chat Log da Mesa</div>
             </div>
             <div id="chat-log">
-                <div class="chat-message"><b>Sistema:</b> VTT e Escudo do Mestre ativos. Pronto para a sessão.</div>
+                <div class="chat-message"><b>Sistema:</b> VTT e Escudo do Mestre ativos. Pronto para a sessão[cite: 4].</div>
             </div>
         </div>
     </div>
 
     <script>
-        // Dados oficiais extraídos do Livro do Mestre e Atlas do Mundo
+        // Tabelas oficiais do Livro do Mestre e Atlas do Mundo[cite: 2, 4]
         const climasOficiais = [
-            { c: "Céu Limpo", e: "Sem modificadores mecânicos ambientais ativos." },
+            { c: "Céu Limpo", e: "Sem modificadores mecânicos ambientais ativos[cite: 4]." },
             { c: "Nublado", e: "Sem modificadores. O Mestre pode interpretar como um prenúncio divino[cite: 4]." },
             { c: "Chuva Leve", e: "Desvantagem em testes de Percepção baseados na visão[cite: 4]." },
             { c: "Tempestade de Zeus", e: "Desvantagem em ataques à distância; o terreno aberto vira Terreno Difícil[cite: 4]." },
             { c: "Névoa Densa", e: "Penumbra em toda a área externa; Desvantagem em testes de Percepção[cite: 4]." },
             { c: "Calor Extremo de Deméter", e: "Exige Teste de CON (CD 10) por hora de atividade intensa ou causa 1 nível de Exaustão[cite: 4]." },
-            { c: "Frio Extremo de Bóreas", e: "Exige Teste de CON (CD 10) por hora sem proteção adequada ou causa 1 nível de Exaustão[cite: 4]." },
-            { c: "Clima de Origem Divina", e: "Manifestação direta da ira ou humor de um deus. Modificadores escalam conforme a divindade[cite: 4]." }
+            { c: "Frio Extremo de Bóreas", e: "Exige Teste de CON (CD 10) por hora sem proteção adequada ou causa 1 nível de Exaustão[cite: 4]." }
         ];
 
         const complicacoesOficiais = [
@@ -288,11 +297,10 @@
             "Um aliado foi comprometido ou chantageado - não é mais totalmente confiável[cite: 4].",
             "O prazo foi encurtado drasticamente pelo avanço do Relógio do Vilão[cite: 4].",
             "Um recurso ou item essencial do grupo foi danificado ou perdido no caminho[cite: 4].",
-            "Uma terceira facção inesperada apareceu com uma agenda própria conflitante[cite: 4].",
-            "O objetivo real da missão não era nada do que foi dito aos heróis no Acampamento[cite: 4]."
+            "Uma terceira facção inesperada apareceu com uma agenda própria conflitante[cite: 4]."
         ];
 
-        const nomesNPC = ["Alexandros", "Demetrios", "Daphne", "Elektra", "Thalia", "Zoe", "Nico", "Marcus", "Kalliope", "Lysandra"][cite: 4];
+        const nomesNPC = ["Alexandros", "Demetrios", "Daphne", "Elektra", "Thalia", "Zoe", "Nico", "Marcus"][cite: 4];
         const reacoesNPC = [
             { d: "Hostil", b: "Ataca ou ameaça o grupo de semideuses imediatamente[cite: 4]." },
             { d: "Desconfiado", b: "Recusa cooperação direta; exige uma prova de intenção ou lealdade[cite: 4]." },
@@ -305,7 +313,7 @@
             chb_floresta: { nome: "A Floresta do Acampamento", url: "https://i.pinimg.com/originals/3a/0d/fc/3a0dfc0fcf95dbfa293cf75f3a0994cc.jpg", desc: "400 acres de floresta densa[cite: 4]. Treinamento vivo com criaturas autorizadas por Quirão[cite: 4]." },
             empire_state: { nome: "O 600° Andar (Monte Olimpo)", url: "https://i.pinimg.com/originals/5c/d6/de/5cd6de0b0dfcf73c660bb30f7be52a16.jpg", desc: "A entrada para o Olimpo[cite: 4]. 1h aqui equivale a 1h30 no mundo mortal[cite: 4]." },
             central_park: { nome: "Central Park - Nova York", url: "https://i.pinimg.com/originals/b3/ee/b2/b3eeb29f55f2b84cf13f88b56088d8b6.jpg", desc: "Alta energia natural[cite: 4]. Ponto de caça para Sátiros e Dríades territoriais[cite: 4]." },
-            lax_submundo: { nome: "LAX Terminal (Submundo)", url: "https://i.pinimg.com/originals/3a/27/a3/3a27a3c74c935ee5ec4660eb0072cb0e.jpg", desc: "Entrada do reino de Hades[cite: 4]. O contato com o Estige causa 4d10 de dano Necrótico por rodada[cite: 4]!" },
+            lax_submundo: { nome: "LAX Terminal (Submundo)", url: "https://i.pinimg.com/originals/3a/27/a3/3a27a3c74c935ee5ec4660eb0072cb0e.jpg", desc: "Entrada do reino de Hades[cite: 4]. O contato com o Estige causa 4d10 de dano Necrótico por rodada[cite: 4]." },
             mar_monstros: { nome: "O Mar de Monstros", url: "https://i.pinimg.com/originals/4e/d8/b1/4ed8b18ec494a5da671f65c192bd3780.jpg", desc: "Localizado no Triângulo das Bermudas[cite: 4]. As regras normais de navegação falham[cite: 4]." },
             tartaro: { nome: "O Abismo do Tártaro", url: "https://i.pinimg.com/originals/0f/bb/fc/0fbbfe7ef99b0c79efb9777174db63fc.jpg", desc: "Ambiente hostil. Semideuses sofrem 1d6 de dano Psíquico por hora sem proteção divina[cite: 4]." },
             labirinto: { nome: "O Labirinto de Dédalo", url: "https://i.pinimg.com/originals/72/7a/df/727adf6987df1c9bc40fffa8174dfb29.jpg", desc: "Dimensão consciente em mutação[cite: 4]. Teste de Investigação (CD 15) a cada hora para não se perder[cite: 4]." }
@@ -318,7 +326,7 @@
             ciclope: { nome: "Ciclope", nd: 6, pv: 138, ca: 12, cor: "#2980b9", info: "Ataque Duplo (+9 Porrete: 3d8+6 ou Rocha: 3d10+6)[cite: 4]. Ocupa espaço de 3x3m, agarra alvos automaticamente[cite: 4]." },
             drakon: { nome: "Drakon", nd: 12, pv: 230, ca: 18, cor: "#8e44ad", info: "Ataque Triplo (+13)[cite: 4]. Veneno corrosivo CD 18 impede cura[cite: 4]. Olhar Hipnótico CD 16[cite: 4]." },
             quimera: { nome: "Quimera", nd: 9, pv: 168, ca: 16, cor: "#d35400", info: "Ataque Triplo (+9 Leão: 2d8+5, Cabra: 2d6+5, Serpente: 1d8+5 + 3d6 veneno)[cite: 4]. Sopro 8d6[cite: 4]." },
-            escorpião: { nome: "Escorpião Gigante", nd: 4, pv: 94, ca: 15, cor: "#7f8c8d", info: "Ataque Duplo (+6)[cite: 4]. Garra agarra alvo (escape CD 14)[cite: 4]. Ferrão: 1d10+4 + 3d6 veneno (Paralisia)[cite: 4]." },
+            escorpião: { nome: "Escorpião Gigante", nd: 4, pv: 94, ca: 15, cor: "#7f8c8d", info: "Ataque Duplo (+6)[cite: 4]. Garra agarra alvo (CD 14)[cite: 4]. Ferrão: 1d10+4 + 3d6 veneno[cite: 4]." },
             basilisco: { nome: "Basilisco", nd: 5, pv: 104, ca: 15, cor: "#27ae60", info: "Olhar Petrificante CD 14[cite: 4]. Mordida (+5): 2d6+3 + 2d6 veneno[cite: 4]. Cuspe Ácido 4d8 (Cegueira)[cite: 4]." },
             leao: { nome: "Leão de Nemeia", nd: 6, pv: 120, ca: 17, cor: "#f39c12", info: "Couro Impenetrável (Imune a armas não-mágicas/não-divinas)[cite: 4]. Ataque Duplo Garra (+9): 2d8+6[cite: 4]." },
             manticora: { nome: "Manticora", nd: 7, pv: 144, ca: 15, cor: "#e67e22", info: "Ataque Triplo (+7 Mordida/Garra e +6 Espinho: 1d8+3 + 2d6 veneno)[cite: 4]. Inteligência Predatória (fala)[cite: 4]." }
@@ -353,27 +361,27 @@
             enviarAoChat(`<b>Rolagem de Dados</b><br><span style="color: #b388ff;">Resultado para d${lados}:</span><div class="roll-total">${resultado}</div>`, "chat-message roll");
         }
 
-        // --- SISTEMA DE TABELAS DO LIVRO DO MESTRE ---
-        function gerarClima() {
+        // --- MAIS EVENTOS DO ESCUDO ---
+        document.getElementById('btn-clima').addEventListener('click', () => {
             const clima = climasOficiais[Math.floor(Math.random() * climasOficiais.length)];
             enviarAoChat(`<b>🌦️ Tabela de Clima (Cap. 14)</b><br><span style="color: #f1c40f;">Condição: ${clima.c}</span><br><small>${clima.e}</small>`, "chat-message dm-tool");
-        }
+        });
 
-        function gerarComplicacao() {
+        document.getElementById('btn-complicacao').addEventListener('click', () => {
             const comp = complicacoesOficiais[Math.floor(Math.random() * complicacoesOficiais.length)];
             enviarAoChat(`<b>⚠️ Complicação de Missão (Cap. 14)</b><br><span style="color: #e74c3c;">Reviravolta:</span> <small>${comp}</small>`, "chat-message dm-tool");
-        }
+        });
 
-        function gerarNPC() {
+        document.getElementById('btn-npc').addEventListener('click', () => {
             const nome = nomesNPC[Math.floor(Math.random() * nomesNPC.length)];
             const reacao = reacoesNPC[Math.floor(Math.random() * reacoesNPC.length)];
             enviarAoChat(`<b>👤 NPC Improvisado (Cap. 14)</b><br><b>Nome:</b> ${nome}<br><span style="color: #2ecc71;">Postura Inicial: ${reacao.d}</span><br><small>${reacao.b}</small>`, "chat-message dm-tool");
-        }
+        });
 
-        function testarNevoa() {
+        document.getElementById('btn-nevoa').addEventListener('click', () => {
             const cd = nevoaSelect.value;
             enviarAoChat(`<b>Filter: Manipulação da Névoa (Cap. 2)</b><br>Para enganar a percepção dos mortais nesta cena, o semideus exige um teste ativo de <b>CAR ou INT</b> contra uma <b>Classe de Dificuldade (CD) ${cd}</b>[cite: 4].`, "chat-message dm-tool");
-        }
+        });
 
         function mapearMovimentacaoToken(token) {
             let isDragging = false;
@@ -451,6 +459,7 @@
                 const token = document.createElement('div');
                 token.className = 'token';
                 token.style.backgroundImage = `url('${e.target.result}')`;
+                token.style.borderColor = "#ffca28";
                 token.style.left = "201px"; token.style.top = "201px";
 
                 const label = document.createElement('div');
